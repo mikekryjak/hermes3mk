@@ -47,8 +47,10 @@
 // registration from Barthelemy Dagenais' (barthelemy@prologique.com)
 // easyUnit framework.
 
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-#define GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+// GOOGLETEST_CM0001 DO NOT DELETE
+
+#ifndef GTEST_INCLUDE_GTEST_GTEST_H_
+#define GTEST_INCLUDE_GTEST_GTEST_H_
 
 #include <cstddef>
 #include <limits>
@@ -70,6 +72,17 @@
 
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
 /* class A needs to have dll-interface to be used by clients of class B */)
+
+namespace testing {
+
+// Silence C4100 (unreferenced formal parameter) and 4805
+// unsafe mix of type 'const int' and type 'const bool'
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable:4805)
+# pragma warning(disable:4100)
+#endif
+
 
 // Declares the flags.
 
@@ -125,12 +138,6 @@ GTEST_DECLARE_int32_(random_seed);
 // is 1. If the value is -1 the tests are repeating forever.
 GTEST_DECLARE_int32_(repeat);
 
-// This flag controls whether Google Test Environments are recreated for each
-// repeat of the tests. The default value is true. If set to false the global
-// test Environment objects are only set up once, for the first iteration, and
-// only torn down once, for the last.
-GTEST_DECLARE_bool_(recreate_environments_when_repeating);
-
 // This flag controls whether Google Test includes Google Test internal
 // stack frames in failure stack traces.
 GTEST_DECLARE_bool_(show_internal_stack_frames);
@@ -155,16 +162,6 @@ GTEST_DECLARE_string_(stream_result_to);
 #if GTEST_USE_OWN_FLAGFILE_FLAG_
 GTEST_DECLARE_string_(flagfile);
 #endif  // GTEST_USE_OWN_FLAGFILE_FLAG_
-
-namespace testing {
-
-// Silence C4100 (unreferenced formal parameter) and 4805
-// unsafe mix of type 'const int' and type 'const bool'
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4805)
-#pragma warning(disable : 4100)
-#endif
 
 // The upper limit for valid stack trace depths.
 const int kMaxStackTraceDepth = 100;
@@ -676,7 +673,7 @@ class GTEST_API_ TestResult {
 
   // Protects mutable state of the property vector and of owned
   // properties, whose values may be updated.
-  internal::Mutex test_properties_mutex_;
+  internal::Mutex test_properites_mutex_;
 
   // The vector of TestPartResults
   std::vector<TestPartResult> test_part_results_;
@@ -1965,37 +1962,18 @@ class TestWithParam : public Test, public WithParamInterface<T> {
 // Boolean assertions. Condition can be either a Boolean expression or an
 // AssertionResult. For more information on how to use AssertionResult with
 // these macros see comments on that class.
-#define GTEST_EXPECT_TRUE(condition) \
+#define EXPECT_TRUE(condition) \
   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, \
                       GTEST_NONFATAL_FAILURE_)
-#define GTEST_EXPECT_FALSE(condition) \
+#define EXPECT_FALSE(condition) \
   GTEST_TEST_BOOLEAN_(!(condition), #condition, true, false, \
                       GTEST_NONFATAL_FAILURE_)
-#define GTEST_ASSERT_TRUE(condition) \
+#define ASSERT_TRUE(condition) \
   GTEST_TEST_BOOLEAN_(condition, #condition, false, true, \
                       GTEST_FATAL_FAILURE_)
-#define GTEST_ASSERT_FALSE(condition) \
+#define ASSERT_FALSE(condition) \
   GTEST_TEST_BOOLEAN_(!(condition), #condition, true, false, \
                       GTEST_FATAL_FAILURE_)
-
-// Define these macros to 1 to omit the definition of the corresponding
-// EXPECT or ASSERT, which clashes with some users' own code.
-
-#if !GTEST_DONT_DEFINE_EXPECT_TRUE
-#define EXPECT_TRUE(condition) GTEST_EXPECT_TRUE(condition)
-#endif
-
-#if !GTEST_DONT_DEFINE_EXPECT_FALSE
-#define EXPECT_FALSE(condition) GTEST_EXPECT_FALSE(condition)
-#endif
-
-#if !GTEST_DONT_DEFINE_ASSERT_TRUE
-#define ASSERT_TRUE(condition) GTEST_ASSERT_TRUE(condition)
-#endif
-
-#if !GTEST_DONT_DEFINE_ASSERT_FALSE
-#define ASSERT_FALSE(condition) GTEST_ASSERT_FALSE(condition)
-#endif
 
 // Macros for testing equalities and inequalities.
 //
@@ -2381,12 +2359,13 @@ constexpr bool StaticAssertTypeEq() noexcept {
 //     EXPECT_EQ(a_.size(), 0);
 //     EXPECT_EQ(b_.size(), 1);
 //   }
-#define GTEST_TEST_F(test_fixture, test_name)\
+//
+// GOOGLETEST_CM0011 DO NOT DELETE
+#if !GTEST_DONT_DEFINE_TEST
+#define TEST_F(test_fixture, test_name)\
   GTEST_TEST_(test_fixture, test_name, test_fixture, \
               ::testing::internal::GetTypeId<test_fixture>())
-#if !GTEST_DONT_DEFINE_TEST_F
-#define TEST_F(test_fixture, test_name) GTEST_TEST_F(test_fixture, test_name)
-#endif
+#endif  // !GTEST_DONT_DEFINE_TEST
 
 // Returns a path to temporary directory.
 // Tries to determine an appropriate directory for the platform.
@@ -2494,4 +2473,4 @@ inline int RUN_ALL_TESTS() {
 
 GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 
-#endif  // GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+#endif  // GTEST_INCLUDE_GTEST_GTEST_H_
