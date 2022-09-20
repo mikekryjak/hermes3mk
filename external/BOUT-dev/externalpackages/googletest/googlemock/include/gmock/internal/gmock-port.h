@@ -35,8 +35,10 @@
 // end with _ are part of Google Mock's public API and can be used by
 // code outside Google Mock.
 
-#ifndef GOOGLEMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_
-#define GOOGLEMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_
+// GOOGLETEST_CM0002 DO NOT DELETE
+
+#ifndef GMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_
+#define GMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_
 
 #include <assert.h>
 #include <stdlib.h>
@@ -82,4 +84,4 @@
 
 #endif  // !defined(GMOCK_DECLARE_bool_)
 
-#endif  // GOOGLEMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_
+#endif  // GMOCK_INCLUDE_GMOCK_INTERNAL_GMOCK_PORT_H_

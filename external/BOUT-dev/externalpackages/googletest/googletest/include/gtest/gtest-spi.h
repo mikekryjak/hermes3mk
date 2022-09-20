@@ -31,8 +31,10 @@
 // Utilities for testing Google Test itself and code that uses Google Test
 // (e.g. frameworks built on top of Google Test).
 
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_SPI_H_
-#define GOOGLETEST_INCLUDE_GTEST_GTEST_SPI_H_
+// GOOGLETEST_CM0004 DO NOT DELETE
+
+#ifndef GTEST_INCLUDE_GTEST_GTEST_SPI_H_
+#define GTEST_INCLUDE_GTEST_GTEST_SPI_H_
 
 #include "gtest/gtest.h"
 
@@ -233,4 +235,4 @@ GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
     }\
   } while (::testing::internal::AlwaysFalse())
 
-#endif  // GOOGLETEST_INCLUDE_GTEST_GTEST_SPI_H_
+#endif  // GTEST_INCLUDE_GTEST_GTEST_SPI_H_
