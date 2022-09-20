@@ -1,0 +1,439 @@
+.. _sec-examples:
+
+Examples
+========
+
+
+1D flux-tube
+------------
+
+These simulations follow the dynamics of one or more species along the
+magnetic field. By putting a source at one end of the domain, and a
+sheath at the other, this can be a useful model of plasma dynamics in
+the Scrape-Off Layer (SOL) of a tokamak or other magnetised plasma.
+
+1D periodic domain, Te and Ti
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A fluid is evolved in 1D, imposing quasineutrality and zero net current.
+Both electron and ion pressures are evolved, but there is no exchange
+of energy between them, or heat conduction.
+
+.. figure:: figs/1d_te_ti.*
+   :name: 1d_te_ti
+   :alt:
+   :width: 60%
+   
+   Evolution of pressure, starting from a top hat
+
+The model components are ions (i) and electrons (e), and a component
+which uses the force on the electrons to calculate the parallel electric field,
+which transfers the force to the ions.
+
+.. code-block:: ini
+
+   [hermes]
+   components = i, e, electron_force_balance
+
+
+The ion density, pressure and momentum equations are evolved:
+
+.. code-block:: ini
+
+   [i]  # Ions
+   type = evolve_density, evolve_pressure, evolve_momentum
+
+which solves the equations
+
+.. math::
+
+   \begin{aligned}
+   \frac{\partial n_i}{\partial t} =& -\nabla\cdot\left(n_i\mathbf{b}v_{||i}\right) \\
+   \frac{\partial p_i}{\partial t} =& -\nabla\cdot\left(p_i\mathbf{b}v_{||i}\right) - \frac{2}{3}p_i\nabla\cdot\left(\mathbf{b}v_{||i}\right) \\
+   \frac{\partial}{\partial t}\left(n_iv_{||i}\right) =& -\nabla\cdot\left(n_iv_{||i} \mathbf{b}v_{||i}\right) - \partial_{||}p_i + E
+   \end{aligned}
+
+The electron density is set to the ion density by quasineutrality, the
+parallel velocity is set by a zero current condition, and only the
+electron pressure is evolved.
+
+.. code-block:: ini
+
+   [e] # Electrons
+   type = quasineutral, zero_current, evolve_pressure
+
+which adds the equations:
+
+.. math::
+
+   \begin{aligned}
+   n_e =& n_i \\
+   \frac{\partial p_e}{\partial t} =& -\nabla\cdot\left(p_e\mathbf{b}v_{||e}\right) - \frac{2}{3}p_e\nabla\cdot\left(\mathbf{b}v_{||e}\right)
+   \end{aligned}
+
+The :ref:`zero_current` component sets:
+
+.. math::
+
+   \begin{aligned}
+   E =& -\partial_{||}p_e \\
+   v_{||e} =& v_{||i}
+   \end{aligned}
+
+1D Scrape-off Layer (SOL)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This simulates a similar setup to the `SD1D
+<https://github.com/boutproject/SD1D/>`_ code: A 1D domain, with a
+source of heat and particles on one side, and a sheath boundary on the
+other. Ions recycle into neutrals, which charge exchange and are
+ionised.  A difference is that separate ion and electron temperatures
+are evolved here.
+
+.. figure:: figs/1d_recycling.*
+   :name: 1d_recycling
+   :alt:
+   :width: 60%
+
+   Evolution of ion and neutral density (blue); ion, electron and
+   neutral temperature (red), starting from flat profiles.
+
+Due to the short length-scales near the sheath, the grid is packed
+close to the target, by setting the grid spacing to be a linear
+function of index:
+
+.. code-block:: ini
+
+   [mesh]
+   dy = (length / ny) * (1 + (1-dymin)*(1-y/pi))
+
+where `dymin` is 0.1 here, and sets the smallest grid spacing (at the
+target) as a fraction of the average grid spacing.
+
+The components are ion species `d+`, atoms `d`, electrons `e`:
+
+.. code-block:: ini
+
+   [hermes]
+   components = (d+, d, e,
+                zero_current, sheath_boundary, collisions, recycling, reactions,
+                neutral_parallel_diffusion)
+
+The electron velocity is set to the ion by specifying :ref:`zero_current`;
+A sheath boundary is included; Collisions are needed to be able to calculate
+heat conduction, as well as neutral diffusion rates; Recycling at the targets
+provides a source of atoms; :ref:`neutral_parallel_diffusion` simulates cross-field
+diffusion in a 1D system.
+
+The sheath boundary is only imposed on the upper Y boundary:
+
+.. code-block:: ini
+
+   [sheath_boundary]
+
+   lower_y = false
+   upper_y = true
+
+The reactions component is a group, which lists the reactions included:
+
+.. code-block:: ini
+
+   [reactions]
+   type = (
+           d + e -> d+ + 2e,   # Deuterium ionisation
+           d + d+ -> d+ + d,   # Charge exchange
+          )
+
+To run this example:
+
+.. code-block:: bash
+
+   nice -n 10 ./hermes-3 -d examples/1D-recycling
+
+This should take 5-10 minutes to run. There is a `makeplots.py` script in the
+`examples/1D-recycling` directory which will generate plots and a gif animation
+(if `ImageMagick <https://imagemagick.org/index.php>`_ is installed).
+
+2D drift-plane
+--------------
+
+Simulations where the dynamics along the magnetic field is not
+included, or only included in a parameterised way as sources or
+sinks. These are useful for the study of the basic physics of plasma
+"blobs" / filaments, and tokamak edge turbulence.
+
+.. _Blob2d:
+
+Blob2d
+~~~~~~
+
+A seeded plasma filament in 2D. This version is isothermal and cold ion,
+so only the electron density and vorticity are evolved. A sheath-connected
+closure is used for the parallel current.
+
+.. figure:: figs/blob2d.png
+   :name: fig-blob2d
+   :alt:
+   :scale: 50
+   
+   Electron density Ne at three times, showing propagation to the right
+
+The model components are
+
+.. code-block:: ini
+
+   [hermes]
+   components = e, vorticity, sheath_closure
+
+The electron component consists of two types:
+
+.. code-block:: ini
+
+   [e]  # Electrons
+   type = evolve_density, isothermal
+
+
+The :ref:`evolve_density` component type evolves the electron density `Ne`. This component
+has several options, which are set in the same section e.g.
+
+.. code-block:: ini
+
+   poloidal_flows = false  # Y flows due to ExB
+
+and so solves the equation:
+
+.. math::
+
+   \begin{aligned}
+   \frac{\partial n_e}{\partial t} =& - \nabla\cdot\left(n_e\mathbf{v}_{E\times B}\right) + \nabla\cdot{\frac{1}{e}\mathbf{j}_{sh}}
+   \end{aligned}
+
+The :ref:`isothermal` component type sets the temperature to be a constant, and using
+the density then sets the pressure. The constant temperature is also
+set in this `[e]` section:
+
+.. code-block:: ini
+
+   temperature = 5  # Temperature in eV
+
+so that the equation solved is
+
+.. math::
+
+   \begin{aligned}
+   p_e =& e n_e T_e
+   \end{aligned}
+
+where :math:`T_e` is the fixed electron temperature (5eV).
+
+The :ref:`vorticity` component uses the pressure to calculate the diamagnetic current,
+so must come after the `e` component. This component then calculates the potential.
+Options to control the vorticity component are set in the `[vorticity]` section.
+
+.. math::
+
+   \begin{aligned}
+   \frac{\partial \omega}{\partial t} =& - \nabla\cdot\left(\omega\mathbf{v}_{E\times B}\right) + \nabla\left(p_e\nabla\times\frac{\mathbf{b}}{B}\right) + \nabla\cdot\mathbf{j}_{sh} \\
+   \nabla\cdot\left(\frac{1}{B^2}\nabla_\perp\phi\right) = \omega
+   \end{aligned}
+
+The `sheath_closure` component uses the potential, so must come after :ref:`vorticity`.
+Options are also set as
+
+.. code-block:: ini
+
+   [sheath_closure]
+   connection_length = 10 # meters
+
+This adds the equation
+
+.. math::
+
+   \begin{aligned}
+   \nabla\cdot{\mathbf{j}_{sh}} = \frac{n_e\phi}{L_{||}}
+   \end{aligned}
+
+where :math:`L_{||}` is the connection length.
+
+.. _Blob2d-Te-Ti:
+
+Blob2D-Te-Ti
+~~~~~~~~~~~~
+
+A seeded plasma filament in 2D. This version evolves both electron and
+ion temperatures. A sheath-connected closure is used for the parallel
+current.
+
+.. figure:: figs/blob2d-te-ti.png
+   :name: fig-blob2d-te-ti
+   :alt:
+   :scale: 50
+   
+   Electron density Ne at three times, showing propagation to the right and downwards
+
+The model components are
+
+.. code-block:: ini
+
+   [hermes]
+   components = e, h+, vorticity, sheath_closure
+
+
+The electron component evolves density (saved as `Ne`) and pressure
+(`Pe`), and from these the temperature is calculated.
+
+.. code-block:: ini
+
+   [e]
+   type = evolve_density, evolve_pressure
+
+
+The ion component sets the ion density from the electron density, by
+using the quasineutrality of the plasma; the ion pressure (`Ph+`) is evolved.
+
+.. code-block:: ini
+   
+   [h+]
+   type = quasineutral, evolve_pressure
+
+The equations this solves are similar to the previous :ref:`Blob2d` case, except
+now there are pressure equations for both ions and electrons:
+
+.. math::
+
+   \begin{aligned}
+   \frac{\partial n_e}{\partial t} =& - \nabla\cdot\left(n_e\mathbf{v}_{E\times B}\right) + \nabla\cdot{\frac{1}{e}\mathbf{j}_{sh}} \\
+   \frac{\partial p_e}{\partial t} =& - \nabla\cdot\left(p_e\mathbf{v}_{E\times B}\right) - \gamma_e p_e c_s \\
+   n_{h+} =& n_e \\
+   \frac{\partial p_{h+}}{\partial t} =& - \nabla\cdot\left(p_{h+}\mathbf{v}_{E\times B}\right) \\
+   \frac{\partial \omega}{\partial t} =& - \nabla\cdot\left(\omega\mathbf{v}_{E\times B}\right) + \nabla\left[\left(p_e + p_{h+}\right)\nabla\times\frac{\mathbf{b}}{B}\right] + \nabla\cdot\mathbf{j}_{sh} \\
+   \nabla\cdot\left[\frac{1}{B^2}\nabla_\perp\left(\phi + p_{h+}\right)\right] =& \omega \\
+   \nabla\cdot{\mathbf{j}_{sh}} =& \frac{n_e\phi}{L_{||}}
+   \end{aligned}
+
+2D-drift-plane-turbulence-te-ti
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A 2D turbulence simulation, similar to the :ref:`Blob2d-Te-Ti` case, but with
+extra source and sink terms, so that a statistical steady state of
+source-driven turbulence can be reached.
+
+The model components are
+
+.. code-block:: ini
+
+   [hermes]
+   components = e, h+, vorticity, sheath_closure
+
+
+The electron component evolves density (saved as `Ne`) and pressure
+(`Pe`), and from these the temperature is calculated.
+
+.. code-block:: ini
+
+   [e]
+   type = evolve_density, evolve_pressure
+
+
+The ion component sets the ion density from the electron density, by
+using the quasineutrality of the plasma; the ion pressure (`Ph+`) is evolved.
+
+.. code-block:: ini
+
+   [h+]
+   type = quasineutral, evolve_pressure
+
+The sheath closure now specifies that additional sink terms should be added
+
+.. code-block:: ini
+
+    [sheath_closure]
+    connection_length = 50 # meters
+    potential_offset = 0.0  # Potential at which sheath current is zero
+    sinks = true
+
+and radially localised sources are added in the `[Ne]`, `[Pe]`, and `[Ph+]`
+sections.
+
+The equations this solves are the same as the previous :ref:`Blob2d-Te-Ti`
+case, except wih extra source and sink terms:
+
+.. math::
+
+   \begin{aligned}
+   p_\mathrm{total} =& \sum_a n_a T_a \\
+   \rho_\mathrm{total} =& \sum_a A_a n_a \\
+   c_s =& \sqrt{\frac{p_\mathrm{total}}{\rho_\mathrm{total}}} \\
+   \frac{\partial n_e}{\partial t} =& - \nabla\cdot\left(n_e\mathbf{v}_{E\times B}\right) + \nabla\cdot{\frac{1}{e}\mathbf{j}_{sh}} + n_e c_s + S_n \\
+   \frac{\partial p_e}{\partial t} =& - \nabla\cdot\left(p_e\mathbf{v}_{E\times B}\right) - \gamma_e p_e c_s + S_{p_e} \\
+   n_{h+} =& n_e \\
+   \frac{\partial p_{h+}}{\partial t} =& - \nabla\cdot\left(p_{h+}\mathbf{v}_{E\times B}\right) - \gamma_i p_{h+} c_s \\
+   \frac{\partial \omega}{\partial t} =& - \nabla\cdot\left(\omega\mathbf{v}_{E\times B}\right) + \nabla\left[\left(p_e + p_{h+}\right)\nabla\times\frac{\mathbf{b}}{B}\right] + \nabla\cdot\mathbf{j}_{sh} \\
+   \nabla\cdot\left[\frac{1}{B^2}\nabla_\perp\left(\phi + p_{h+}\right)\right] =& \omega \\
+   \nabla\cdot{\mathbf{j}_{sh}} =& \frac{n_e\phi}{L_{||}}
+   \end{aligned}
+
+The sheath heat transmission coefficients default to :math:`\gamma_e = 6.5` and
+:math:`\gamma_i = 2.0` (:math:`\gamma_i` as suggested in Stangeby's textbook
+between equations (2.92) and (2.93)). Note the sinks in may not be correct or
+the best choices, especially for cases with multiple ion species; they were
+chosen as being simple to implement by John Omotani in May 2022.
+
+
+2D axisymmetric tokamak
+-----------------------
+
+These are transport simulations, where the cross-field transport is given
+by diffusion, and fluid-like equations are used for the parallel dynamics
+(as in the 1D flux tube cases).
+
+The `recycling-dthene` example includes cross-field diffusion,
+parallel flow and heat conduction, collisions between species, sheath
+boundary conditions and recycling. It simulates the density, parallel
+flow and pressure of the electrons; ion species D+, T+, He+, Ne+; and
+neutral species D, T, He, Ne.
+
+.. figure:: figs/pe_nvt_nne_2d.png
+   :name: recycling-dthene
+   :alt:
+   :width: 100%
+
+   Electron pressure, parallel tritium flux, and neon atom density. Simulation
+   evolves D, T, He, Ne and electron species, including ions and neutral atoms.
+
+The model components are a list of species, and then collective components
+which couple multiple species.
+
+.. code-block:: ini
+
+   [hermes]
+   components = (d+, d, t+, t, he+, he, ne+, ne, e,
+                 collisions, sheath_boundary, recycling, reactions)
+
+Note that long lists like this can be split across multiple lines by
+using parentheses. 
+                 
+Each ion species has a set of components, to evolve the density,
+momentum and pressure. Anomalous diffusion adds diffusion of
+particles, momentum and energy. For example deuterium ions contain:
+
+.. code-block:: ini
+   
+   [d+]
+   type = evolve_density, evolve_momentum, evolve_pressure, anomalous_diffusion
+   AA = 2
+   charge = 1
+
+Atomic reactions are specified as a list:
+
+.. code-block:: ini
+   
+   [reactions]
+   type = (
+        d + e -> d+ + 2e,   # Deuterium ionisation
+        t + e -> t+ + 2e,   # Tritium ionisation
+        he + e -> he+ + 2e, # Helium ionisation
+        he+ + e -> he,      # Helium+ recombination
+        ne + e -> ne+ + 2e, # Neon ionisation
+        ne+ + e -> ne,      # Neon+ recombination
+       )
