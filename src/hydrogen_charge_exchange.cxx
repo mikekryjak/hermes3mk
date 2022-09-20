@@ -1,7 +1,7 @@
 #include "../include/hydrogen_charge_exchange.hxx"
 
 void HydrogenChargeExchange::calculate_rates(Options& atom1, Options& ion1,
-                                             Options& atom2, Options& ion2, const Field3D* F) {
+                                             Options& atom2, Options& ion2, Field3D* F) {
 
   // Temperatures and masses of initial atom and ion
   const Field3D Tatom = get<Field3D>(atom1["temperature"]);

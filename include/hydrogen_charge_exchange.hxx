@@ -53,7 +53,7 @@ protected:
   ///   - energy_source
   ///
   void calculate_rates(Options& atom1, Options& ion1, 
-                        Options& atom2, Options& ion2, const Field3D* F);
+                        Options& atom2, Options& ion2, Field3D* F);
 };
 
 /// Hydrogen charge exchange
