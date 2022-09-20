@@ -65,7 +65,8 @@ template <char Isotope1, char Isotope2>
 struct HydrogenChargeExchangeIsotope : public HydrogenChargeExchange {
   HydrogenChargeExchangeIsotope(std::string name, Options& alloptions, Solver* solver)
       : HydrogenChargeExchange(name, alloptions, solver) {
-        bout::globals::dump.addRepeat(F, std::string(("F") + name));
+        bout::globals::dump.addRepeat(F, std::string(("Fcx_") + 
+                                        std::string{Isotope1} + std::string{Isotope2}+ '+'));
       }
 
   void transform(Options& state) override {
