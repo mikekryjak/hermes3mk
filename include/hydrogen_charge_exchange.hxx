@@ -52,7 +52,8 @@ protected:
   ///   - momentum_source
   ///   - energy_source
   ///
-  void calculate_rates(Options& atom1, Options& ion1, Options& atom2, Options& ion2);
+  void calculate_rates(Options& atom1, Options& ion1, 
+                        Options& atom2, Options& ion2, Field3D* F, Field3D* E);
 };
 
 /// Hydrogen charge exchange
@@ -63,14 +64,23 @@ protected:
 template <char Isotope1, char Isotope2>
 struct HydrogenChargeExchangeIsotope : public HydrogenChargeExchange {
   HydrogenChargeExchangeIsotope(std::string name, Options& alloptions, Solver* solver)
-      : HydrogenChargeExchange(name, alloptions, solver) {}
+      : HydrogenChargeExchange(name, alloptions, solver) {
+        bout::globals::dump.addRepeat(F, std::string(("F") + 
+                                        std::string{Isotope1} + ("_cx") ));
+        bout::globals::dump.addRepeat(E, std::string(("E") + 
+                                        std::string{Isotope1} + ("_cx") ));
+      }
 
   void transform(Options& state) override {
     calculate_rates(state["species"][{Isotope1}],       // e.g. "h"
                     state["species"][{Isotope2, '+'}],  // e.g. "d+"
                     state["species"][{Isotope2}],       // e.g. "d"
-                    state["species"][{Isotope1, '+'}]); // e.g. "h+"
+                    state["species"][{Isotope1, '+'}], 
+                    &F, &E); // e.g. "h+"
   }
+  Field3D F; // Momentum transfer
+  Field3D E; // Energy transfer
+
 };
 
 namespace {
